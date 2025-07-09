@@ -1,0 +1,28 @@
+body {
+    font-family: sans-serif;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    margin: 20px;
+    background-color: #f4f4f4;
+}
+#viewer-container {
+    width: 80%;
+    max-width: 900px;
+    margin-top: 20px;
+    border: 1px solid #ddd;
+    box-shadow: 0 0 10px rgba(0,0,0,0.1);
+    overflow: auto;
+    background-color: white;
+}
+canvas {
+    border: 1px solid #ccc;
+    display: block;
+    margin: 0 auto;
+}
+input[type="file"] {
+    padding: 10px;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+    cursor: pointer;
+}
