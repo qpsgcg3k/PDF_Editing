@@ -8,8 +8,22 @@
 </head>
 <body>
     <h1>PDF Viewer</h1>
-    <input type="file" id="pdf-upload" accept="application/pdf">
+    <div class="controls">
+        <input type="file" id="pdf-upload" accept="application/pdf">
+        <div class="view-mode-switch">
+            <label for="view-mode-toggle">ページ送りモード</label>
+            <input type="checkbox" id="view-mode-toggle">
+        </div>
+    </div>
+
     <div id="viewer-container"></div>
+
+    <div id="pagination-controls" class="hidden">
+        <button id="prev-page">前へ</button>
+        <span id="page-num"></span>
+        <button id="next-page">次へ</button>
+    </div>
+
     <script type="module" src="script.js"></script>
 </body>
 </html>
