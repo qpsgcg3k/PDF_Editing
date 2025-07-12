@@ -6,7 +6,8 @@
 | :--- | :--- | :--- | :--- |
 | 1.0.0    | 2025-07-10 | Gemini | 初版作成 |
 | 1.0.1    | 2025-07-10 | Gemini | ページ送り機能と表示モード切り替え機能の実装詳細追加 |
-| 1.0.2    | 2025-07-12 | Gemini | 拡大・縮小機能の実装詳細追加 |
+| 1.0.2    | 2025-07-12 | Gemini | 拡大・縮小機能の実装詳細追加
+| 1.0.3    | 2025-07-12 | Gemini | PDFダウンロード機能の実装詳細追加 |
 
 ## 1. プロジェクト構成
 
@@ -55,6 +56,7 @@
 - `zoomInBtn`: 拡大ボタン (`<button id="zoom-in">`)
 - `zoomOutBtn`: 縮小ボタン (`<button id="zoom-out">`)
 - `zoomResetBtn`: 拡大率リセットボタン (`<button id="zoom-reset">`)
+- `downloadPdfBtn`: PDFダウンロードボタン (`<button id="download-pdf">`)
 
 ### 3.3. 初期化処理
 
@@ -83,6 +85,11 @@
 - **`zoomResetBtn.addEventListener('click', ...)`**:
     - リセットボタンの `click` イベントを監視する。
     - `scale` を初期値に戻し、`render()` を呼び出す。
+- **`downloadPdfBtn.addEventListener('click', ...)`**:
+    - PDFダウンロードボタンの `click` イベントを監視する。
+    - `pdfDoc.getData()` を使用してPDFのバイナリデータを取得し、`Blob` オブジェクトを作成する。
+    - `URL.createObjectURL()` でダウンロードURLを生成し、`<a>` 要素を作成してダウンロードを実行する。
+    - ダウンロード後、`URL.revokeObjectURL()` でURLを解放する。
 
 ### 3.5. レンダリング関数
 

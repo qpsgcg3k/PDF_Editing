@@ -15,6 +15,7 @@ const pageNumSpan = document.getElementById('page-num');
 const zoomInBtn = document.getElementById('zoom-in');
 const zoomOutBtn = document.getElementById('zoom-out');
 const zoomResetBtn = document.getElementById('zoom-reset');
+const downloadPdfBtn = document.getElementById('download-pdf');
 
 // アプリケーションの状態管理
 let pdfDoc = null;
@@ -45,6 +46,7 @@ pdfUpload.addEventListener('change', async (event) => {
             currentPage = 1;
             scale = 1.5;
             render();
+            downloadPdfBtn.classList.remove('hidden');
         } catch (error) {
             console.error('Error loading PDF:', error);
             alert('PDFの読み込み中にエラーが発生しました。');
@@ -90,6 +92,28 @@ zoomOutBtn.addEventListener('click', () => {
 zoomResetBtn.addEventListener('click', () => {
     scale = 1.5;
     render();
+});
+
+// PDFダウンロードボタンクリック時の処理
+downloadPdfBtn.addEventListener('click', async () => {
+    if (!pdfDoc) return;
+
+    try {
+        const originalData = await pdfDoc.getData();
+        const blob = new Blob([originalData], { type: 'application/pdf' });
+        const url = URL.createObjectURL(blob);
+
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'downloaded.pdf'; // ダウンロードファイル名
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+    } catch (error) {
+        console.error('Error downloading PDF:', error);
+        alert('PDFのダウンロード中にエラーが発生しました。');
+    }
 });
 
 
