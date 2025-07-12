@@ -20,6 +20,14 @@ body {
     gap: 5px;
 }
 
+.zoom-controls button {
+    padding: 8px 12px;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+    background-color: #fff;
+    cursor: pointer;
+}
+
 #viewer-container {
     width: 80%;
     max-width: 900px;

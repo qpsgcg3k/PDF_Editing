@@ -12,11 +12,15 @@ const paginationControls = document.getElementById('pagination-controls');
 const prevPageBtn = document.getElementById('prev-page');
 const nextPageBtn = document.getElementById('next-page');
 const pageNumSpan = document.getElementById('page-num');
+const zoomInBtn = document.getElementById('zoom-in');
+const zoomOutBtn = document.getElementById('zoom-out');
+const zoomResetBtn = document.getElementById('zoom-reset');
 
 // アプリケーションの状態管理
 let pdfDoc = null;
 let currentPage = 1;
 let viewMode = 'scroll'; // 'scroll' or 'page'
+let scale = 1.5;
 
 // --- イベントリスナー ---
 
@@ -39,6 +43,7 @@ pdfUpload.addEventListener('change', async (event) => {
             });
             pdfDoc = await loadingTask.promise;
             currentPage = 1;
+            scale = 1.5;
             render();
         } catch (error) {
             console.error('Error loading PDF:', error);
@@ -66,6 +71,25 @@ nextPageBtn.addEventListener('click', () => {
     if (currentPage >= pdfDoc.numPages) return;
     currentPage++;
     renderPageMode();
+});
+
+// 拡大ボタンクリック時の処理
+zoomInBtn.addEventListener('click', () => {
+    scale += 0.1;
+    render();
+});
+
+// 縮小ボタンクリック時の処理
+zoomOutBtn.addEventListener('click', () => {
+    if (scale <= 0.2) return;
+    scale -= 0.1;
+    render();
+});
+
+// リセットボタンクリック時の処理
+zoomResetBtn.addEventListener('click', () => {
+    scale = 1.5;
+    render();
 });
 
 
@@ -115,7 +139,7 @@ async function renderPageMode() {
 async function renderCanvasPage(pageNum) {
     try {
         const page = await pdfDoc.getPage(pageNum);
-        const viewport = page.getViewport({ scale: 1.5 });
+        const viewport = page.getViewport({ scale: scale });
 
         const canvas = document.createElement('canvas');
         const ctx = canvas.getContext('2d');
@@ -128,7 +152,7 @@ async function renderCanvasPage(pageNum) {
             canvasContext: ctx,
             viewport: viewport,
         }).promise;
-        console.log(`Page ${pageNum} rendered`);
+        console.log(`Page ${pageNum} rendered with scale ${scale}`);
     } catch (error) {
         console.error(`Error rendering page ${pageNum}:`, error);
     }
