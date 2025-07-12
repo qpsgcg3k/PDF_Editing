@@ -6,6 +6,7 @@
 | :--- | :--- | :--- | :--- |
 | 1.0.0    | 2025-07-10 | Gemini | 初版作成 |
 | 1.0.1    | 2025-07-10 | Gemini | ページ送り機能と表示モード切り替え機能の実装詳細追加 |
+| 1.0.2    | 2025-07-12 | Gemini | 拡大・縮小機能の実装詳細追加 |
 
 ## 1. プロジェクト構成
 
@@ -28,6 +29,7 @@
 - **`pdfDoc`**: 読み込まれたPDFドキュメントオブジェクト (`pdfjsLib.PDFDocumentProxy`型)。
 - **`currentPage`**: 現在表示しているページ番号 (number型、初期値: 1)。
 - **`viewMode`**: 現在の表示モード (`'scroll'` または `'page'` の文字列、初期値: `'scroll'`)。
+- **`scale`**: 現在のPDF表示倍率 (number型、初期値: 1.5)。
 
 ## 3. 主要なJavaScript関数とロジック (`script.js`)
 
@@ -50,6 +52,9 @@
 - `prevPageBtn`: 「前へ」ボタン (`<button id="prev-page">`)
 - `nextPageBtn`: 「次へ」ボタン (`<button id="next-page">`)
 - `pageNumSpan`: ページ番号表示 (`<span id="page-num">`)
+- `zoomInBtn`: 拡大ボタン (`<button id="zoom-in">`)
+- `zoomOutBtn`: 縮小ボタン (`<button id="zoom-out">`)
+- `zoomResetBtn`: 拡大率リセットボタン (`<button id="zoom-reset">`)
 
 ### 3.3. 初期化処理
 
@@ -69,6 +74,15 @@
 - **`nextPageBtn.addEventListener('click', ...)`**:
     - 「次へ」ボタンの `click` イベントを監視する。
     - `currentPage`をインクリメントし、`renderPageMode()`を呼び出す（`currentPage`が総ページ数より小さい場合のみ）。
+- **`zoomInBtn.addEventListener('click', ...)`**:
+    - 拡大ボタンの `click` イベントを監視する。
+    - `scale` をインクリメントし、`render()` を呼び出す。
+- **`zoomOutBtn.addEventListener('click', ...)`**:
+    - 縮小ボタンの `click` イベントを監視する。
+    - `scale` をデクリメントし、`render()` を呼び出す。
+- **`zoomResetBtn.addEventListener('click', ...)`**:
+    - リセットボタンの `click` イベントを監視する。
+    - `scale` を初期値に戻し、`render()` を呼び出す。
 
 ### 3.5. レンダリング関数
 
@@ -87,7 +101,7 @@
 - **`renderCanvasPage(pageNum)`**:
     - 指定された`pageNum`のPDFページをCanvasに描画する共通関数。
     - `pdfDoc.getPage(pageNum)`でページオブジェクトを取得。
-    - `page.getViewport()`でビューポート情報を取得（スケール1.5）。
+    - `page.getViewport()`でビューポート情報を取得（`scale`変数を使用）。
     - 新しい`<canvas>`要素を作成し、`viewerContainer`に追加。
     - `page.render()`でCanvasに描画する。
     - エラーハンドリングを含む。
