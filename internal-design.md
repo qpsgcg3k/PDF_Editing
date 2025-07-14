@@ -6,6 +6,7 @@
 | :--- | :--- | :--- | :--- |
 | 1.0.0    | 2025-07-10 | Gemini | 初版作成 |
 | 1.0.1    | 2025-07-10 | Gemini | ページ送り機能と表示モード切り替え機能の実装詳細追加 |
+| 1.0.2    | 2025-07-14 | Gemini | PDF内のテキスト選択・コピー機能の実装詳細追加 |
 
 ## 1. プロジェクト構成
 
@@ -28,6 +29,7 @@
 - **`pdfDoc`**: 読み込まれたPDFドキュメントオブジェクト (`pdfjsLib.PDFDocumentProxy`型)。
 - **`currentPage`**: 現在表示しているページ番号 (number型、初期値: 1)。
 - **`viewMode`**: 現在の表示モード (`'scroll'` または `'page'` の文字列、初期値: `'scroll'`)。
+- **`contextMenu`**: 右クリックメニューのDOM要素を保持する変数 (HTMLElement型、初期値: `null`)。
 
 ## 3. 主要なJavaScript関数とロジック (`script.js`)
 
@@ -57,43 +59,74 @@
 
 ### 3.4. イベントハンドリング
 
-- **`pdfUpload.addEventListener('change', ...)`**:
+- **`pdfUpload.addEventListener('change', ...)`**: 
     - ファイル選択 (`<input type="file">`) の `change` イベントを監視する。
     - 選択されたPDFファイルを読み込み、`pdfDoc`に設定後、`render()`を呼び出す。
-- **`viewModeToggle.addEventListener('change', ...)`**:
+- **`viewModeToggle.addEventListener('change', ...)`**: 
     - 表示モード切り替えチェックボックスの `change` イベントを監視する。
     - `viewMode`変数を更新し、`render()`を呼び出す。
-- **`prevPageBtn.addEventListener('click', ...)`**:
+- **`prevPageBtn.addEventListener('click', ...)`**: 
     - 「前へ」ボタンの `click` イベントを監視する。
     - `currentPage`をデクリメントし、`renderPageMode()`を呼び出す（`currentPage`が1より大きい場合のみ）。
-- **`nextPageBtn.addEventListener('click', ...)`**:
+- **`nextPageBtn.addEventListener('click', ...)`**: 
     - 「次へ」ボタンの `click` イベントを監視する。
     - `currentPage`をインクリメントし、`renderPageMode()`を呼び出す（`currentPage`が総ページ数より小さい場合のみ）。
+- **`document.addEventListener('contextmenu', ...)`**: 
+    - ドキュメント全体の `contextmenu` イベント（右クリック）を監視する。
+    - イベントターゲットが`.text-layer`内にある場合、デフォルトのコンテキストメニューを抑制し、`showContextMenu()`を呼び出す。
+- **`document.addEventListener('click', ...)`**: 
+    - ドキュメント全体の `click` イベントを監視する。
+    - `hideContextMenu()`を呼び出し、カスタムコンテキストメニューを非表示にする。
+- **`document.addEventListener('keydown', ...)`**: 
+    - ドキュメント全体の `keydown` イベントを監視する。
+    - `Ctrl+C`で`copySelectedText()`を、`Ctrl+A`で`selectAllText()`を呼び出す。
 
 ### 3.5. レンダリング関数
 
-- **`render()`**:
+- **`render()`**: 
     - `pdfDoc`がnullの場合は処理を中断する。
     - `viewerContainer`の内容をクリアする。
     - `viewMode`に応じて、`document.body`に`page-view-mode`クラスを追加/削除し、`renderScrollMode()`または`renderPageMode()`を呼び出す。
-- **`renderScrollMode()`**:
+- **`renderScrollMode()`**: 
     - `paginationControls`に`hidden`クラスを追加し、非表示にする。
     - `pdfDoc.numPages`の数だけループし、各ページに対して`renderCanvasPage()`を呼び出す。
-- **`renderPageMode()`**:
+- **`renderPageMode()`**: 
     - `viewerContainer`の内容をクリアする。
     - `paginationControls`から`hidden`クラスを削除し、表示する。
     - `currentPage`に対して`renderCanvasPage()`を呼び出す。
     - `updatePaginationControls()`を呼び出し、ページ送りUIを更新する。
-- **`renderCanvasPage(pageNum)`**:
-    - 指定された`pageNum`のPDFページをCanvasに描画する共通関数。
+- **`renderCanvasPage(pageNum)`**: 
+    - 指定された`pageNum`のPDFページをCanvasに描画し、テキストレイヤーを追加する共通関数。
     - `pdfDoc.getPage(pageNum)`でページオブジェクトを取得。
     - `page.getViewport()`でビューポート情報を取得（スケール1.5）。
-    - 新しい`<canvas>`要素を作成し、`viewerContainer`に追加。
+    - 新しい`<canvas>`要素とテキストレイヤー用の`<div>`要素を作成し、`pageContainer`に追加。
     - `page.render()`でCanvasに描画する。
+    - `page.getTextContent()`でテキストコンテンツを取得し、`pdfjsLib.TextLayer`を使用してテキストレイヤーをレンダリングする。
     - エラーハンドリングを含む。
-- **`updatePaginationControls()`**:
+- **`updatePaginationControls()`**: 
     - `pageNumSpan`のテキストを「現在のページ / 総ページ数」の形式で更新する。
     - `prevPageBtn`と`nextPageBtn`の`disabled`プロパティを、`currentPage`と`pdfDoc.numPages`に基づいて設定する。
+
+### 3.6. コピー機能関連関数
+
+- **`showContextMenu(x, y)`**: 
+    - 指定された座標 (`x`, `y`) にカスタムの右クリックメニュー (`.context-menu`) を表示する。
+    - 現在選択されているテキストの有無に応じて、「コピー」メニューアイテムの有効/無効を切り替える。
+    - 「全選択」メニューアイテムも追加する。
+- **`hideContextMenu()`**: 
+    - 表示されているカスタムの右クリックメニューをDOMから削除し、非表示にする。
+- **`copySelectedText()`**: 
+    - `window.getSelection().toString()`で現在選択されているテキストを取得する。
+    - `navigator.clipboard.writeText()`を使用してクリップボードにテキストをコピーする。
+    - コピーに失敗した場合は`fallbackCopyText()`を呼び出す。
+    - コピー成功後、`showCopyMessage()`を呼び出す。
+- **`selectAllText()`**: 
+    - ドキュメント内のすべての`.text-layer`要素のコンテンツを選択する。
+- **`fallbackCopyText(text)`**: 
+    - `navigator.clipboard`が利用できない環境向けに、一時的な`<textarea>`要素を作成し、`document.execCommand('copy')`を使用してテキストをコピーする。
+- **`showCopyMessage(message)`**: 
+    - 画面右下隅に、指定されたメッセージを含む一時的な通知 (`.copy-message`) を表示する。
+    - フェードイン・フェードアウトのアニメーションを伴う。
 
 ## 4. CSS設計 (`style.css`)
 
@@ -112,3 +145,22 @@
     - ボタンとページ番号表示を横並びに配置。
     - `hidden`クラスが付与されている場合は`display: none`で非表示にする。
     - ボタンのスタイル（パディング、ボーダー、背景色、カーソル）と、`disabled`時のスタイル（カーソル、透明度）を定義。
+- **テキストレイヤーのスタイル (`.text-layer`):**
+    - `position: absolute; left: 0; top: 0; right: 0; bottom: 0;` で親要素（`.page-container`）に重ねて配置。
+    - `overflow: hidden; opacity: 0.2; line-height: 1.0;` でテキストの表示と選択を制御。
+    - `user-select: text; cursor: text;` でテキスト選択を可能にする。
+- **テキストレイヤー内のテキストスパン (`.text-layer > span`):**
+    - `color: transparent;` でテキスト自体は透明にし、選択時の背景色のみを表示。
+    - `position: absolute; white-space: pre; cursor: text; transform-origin: 0% 0%;` でテキストの配置とカーソルを制御。
+- **テキスト選択時のスタイル (`.text-layer > span::selection`, `::-moz-selection`):**
+    - `background: rgba(0, 0, 255, 0.3);` で選択時の背景色を設定。
+- **右クリックメニュー (`.context-menu`):**
+    - `position: absolute; background: white; border: 1px solid #ccc; box-shadow: 0 2px 10px rgba(0,0,0,0.2); z-index: 1000;` でメニューの表示位置、背景、ボーダー、影、重なり順を設定。
+    - `min-width: 120px; border-radius: 4px; overflow: hidden;` でサイズと角丸を設定。
+- **右クリックメニューアイテム (`.context-menu-item`):**
+    - `padding: 8px 12px; cursor: pointer; border-bottom: 1px solid #eee;` でパディング、カーソル、下線を設定。
+    - `hover`時の背景色 (`background-color: #f0f0f0;`) と、`disabled`時のスタイル (`opacity: 0.5; cursor: not-allowed;`) を定義。
+- **コピー成功メッセージ (`.copy-message`):**
+    - `position: fixed; bottom: 20px; right: 20px;` で画面右下固定表示。
+    - `background: #333; color: white; padding: 10px 15px; border-radius: 4px; z-index: 1001;` で背景、文字色、パディング、角丸、重なり順を設定。
+    - `opacity: 0; transition: opacity 0.3s;` で初期状態の透明度とアニメーションを設定。
