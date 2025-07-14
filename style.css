@@ -34,14 +34,50 @@ body {
     }
 }
 
+.page-container {
+    position: relative;
+    margin: 0 auto;
+}
+
 canvas {
     border: 1px solid #ccc;
     display: block;
-    margin: 0 auto;
-    /* スクロールモードの時だけマージンを適用 */
-    body:not(.page-view-mode) & {
-        margin-bottom: 20px;
-    }
+}
+
+/* テキストレイヤーのスタイル */
+.text-layer {
+    position: absolute;
+    left: 0;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    overflow: hidden;
+    opacity: 0.2;
+    line-height: 1.0;
+    user-select: text;
+    cursor: text;
+}
+
+.text-layer > span {
+    color: transparent;
+    position: absolute;
+    white-space: pre;
+    cursor: text;
+    transform-origin: 0% 0%;
+}
+
+.text-layer > span::selection {
+    background: rgba(0, 0, 255, 0.3);
+}
+
+.text-layer > span::-moz-selection {
+    background: rgba(0, 0, 255, 0.3);
+}
+
+/* テキスト選択時のスタイル */
+.text-layer .highlight {
+    background: rgba(255, 255, 0, 0.3);
+    border-radius: 2px;
 }
 
 input[type="file"] {
@@ -73,4 +109,39 @@ input[type="file"] {
 #pagination-controls button:disabled {
     cursor: not-allowed;
     opacity: 0.5;
+}
+
+/* 右クリックメニュー（コピー機能用） */
+.context-menu {
+    position: absolute;
+    background: white;
+    border: 1px solid #ccc;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+    z-index: 1000;
+    min-width: 120px;
+    border-radius: 4px;
+    overflow: hidden;
+}
+
+.context-menu-item {
+    padding: 8px 12px;
+    cursor: pointer;
+    border-bottom: 1px solid #eee;
+}
+
+.context-menu-item:last-child {
+    border-bottom: none;
+}
+
+.context-menu-item:hover {
+    background-color: #f0f0f0;
+}
+
+.context-menu-item.disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.context-menu-item.disabled:hover {
+    background-color: white;
 }
