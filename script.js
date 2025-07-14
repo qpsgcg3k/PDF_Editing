@@ -11,12 +11,17 @@ const paginationControls = document.getElementById('pagination-controls');
 const prevPageBtn = document.getElementById('prev-page');
 const nextPageBtn = document.getElementById('next-page');
 const pageNumSpan = document.getElementById('page-num');
+const zoomInBtn = document.getElementById('zoom-in');
+const zoomOutBtn = document.getElementById('zoom-out');
+const zoomResetBtn = document.getElementById('zoom-reset');
+const downloadPdfBtn = document.getElementById('download-pdf');
 
 // アプリケーションの状態管理
 let pdfDoc = null;
 let currentPage = 1;
 let viewMode = 'scroll'; // 'scroll' or 'page'
 let contextMenu = null;
+let currentScale = 1.5; // 初期表示倍率
 
 // --- イベントリスナー ---
 
@@ -40,6 +45,7 @@ pdfUpload.addEventListener('change', async (event) => {
             pdfDoc = await loadingTask.promise;
             currentPage = 1;
             render();
+            downloadPdfBtn.classList.remove('hidden'); // PDF読み込み後にダウンロードボタンを表示
         } catch (error) {
             console.error('Error loading PDF:', error);
             alert('PDFの読み込み中にエラーが発生しました。');
@@ -93,6 +99,14 @@ document.addEventListener('keydown', (event) => {
     }
 });
 
+// 拡大・縮小ボタンのイベントリスナー
+zoomInBtn.addEventListener('click', () => updateScale(0.2));
+zoomOutBtn.addEventListener('click', () => updateScale(-0.2));
+zoomResetBtn.addEventListener('click', () => resetScale());
+
+// PDFダウンロードボタンのイベントリスナー
+downloadPdfBtn.addEventListener('click', () => downloadPdf());
+
 // --- レンダリング関数 ---
 
 /**
@@ -139,7 +153,7 @@ async function renderPageMode() {
 async function renderCanvasPage(pageNum) {
     try {
         const page = await pdfDoc.getPage(pageNum);
-        const viewport = page.getViewport({ scale: 1.5 });
+        const viewport = page.getViewport({ scale: currentScale }); // currentScaleを使用
 
         // ページコンテナを作成
         const pageContainer = document.createElement('div');
@@ -360,4 +374,56 @@ function showCopyMessage(message) {
             }
         }, 300);
     }, 3000);
+}
+
+// --- 拡大・縮小機能関連 ---
+
+/**
+ * PDFの表示倍率を更新する
+ * @param {number} delta - 倍率の増減値
+ */
+function updateScale(delta) {
+    if (!pdfDoc) return;
+    currentScale = Math.max(0.5, Math.min(currentScale + delta, 3.0)); // 最小0.5, 最大3.0
+    render();
+}
+
+/**
+ * PDFの表示倍率をリセットする
+ */
+function resetScale() {
+    if (!pdfDoc) return;
+    currentScale = 1.5; // 初期倍率にリセット
+    render();
+}
+
+// --- PDFダウンロード機能関連 ---
+
+/**
+ * 現在表示されているPDFをダウンロードする
+ */
+async function downloadPdf() {
+    if (!pdfDoc) {
+        alert('ダウンロードするPDFがありません。');
+        return;
+    }
+
+    try {
+        const pdfData = await pdfDoc.getData();
+        const blob = new Blob([pdfData], { type: 'application/pdf' });
+        const url = URL.createObjectURL(blob);
+
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'downloaded_pdf.pdf'; // ダウンロードファイル名
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+
+        console.log('PDFがダウンロードされました。');
+    } catch (error) {
+        console.error('PDFダウンロード中にエラーが発生しました:', error);
+        alert('PDFのダウンロード中にエラーが発生しました。');
+    }
 }

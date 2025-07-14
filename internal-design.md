@@ -6,7 +6,9 @@
 | :--- | :--- | :--- | :--- |
 | 1.0.0    | 2025-07-10 | Gemini | 初版作成 |
 | 1.0.1    | 2025-07-10 | Gemini | ページ送り機能と表示モード切り替え機能の実装詳細追加 |
-| 1.0.2    | 2025-07-14 | Gemini | PDF内のテキスト選択・コピー機能の実装詳細追加 |
+| 1.0.2    | 2025-07-12 | Gemini | 拡大・縮小機能の実装詳細追加 |
+| 1.0.3    | 2025-07-12 | Gemini | PDFダウンロード機能の実装詳細追加 |
+| 1.0.4    | 2025-07-14 | Gemini | PDF内のテキスト選択・コピー機能の実装詳細追加 |
 
 ## 1. プロジェクト構成
 
@@ -30,6 +32,7 @@
 - **`currentPage`**: 現在表示しているページ番号 (number型、初期値: 1)。
 - **`viewMode`**: 現在の表示モード (`'scroll'` または `'page'` の文字列、初期値: `'scroll'`)。
 - **`contextMenu`**: 右クリックメニューのDOM要素を保持する変数 (HTMLElement型、初期値: `null`)。
+- **`currentScale`**: 現在の表示倍率 (number型、初期値: 1.5)。
 
 ## 3. 主要なJavaScript関数とロジック (`script.js`)
 
@@ -52,6 +55,10 @@
 - `prevPageBtn`: 「前へ」ボタン (`<button id="prev-page">`)
 - `nextPageBtn`: 「次へ」ボタン (`<button id="next-page">`)
 - `pageNumSpan`: ページ番号表示 (`<span id="page-num">`)
+- `zoomInBtn`: 拡大ボタン (`<button id="zoom-in">`)
+- `zoomOutBtn`: 縮小ボタン (`<button id="zoom-out">`)
+- `zoomResetBtn`: リセットボタン (`<button id="zoom-reset">`)
+- `downloadPdfBtn`: PDFダウンロードボタン (`<button id="download-pdf">`)
 
 ### 3.3. 初期化処理
 
@@ -62,6 +69,7 @@
 - **`pdfUpload.addEventListener('change', ...)`**: 
     - ファイル選択 (`<input type="file">`) の `change` イベントを監視する。
     - 選択されたPDFファイルを読み込み、`pdfDoc`に設定後、`render()`を呼び出す。
+    - PDF読み込み後、ダウンロードボタンを表示する。
 - **`viewModeToggle.addEventListener('change', ...)`**: 
     - 表示モード切り替えチェックボックスの `change` イベントを監視する。
     - `viewMode`変数を更新し、`render()`を呼び出す。
@@ -80,6 +88,18 @@
 - **`document.addEventListener('keydown', ...)`**: 
     - ドキュメント全体の `keydown` イベントを監視する。
     - `Ctrl+C`で`copySelectedText()`を、`Ctrl+A`で`selectAllText()`を呼び出す。
+- **`zoomInBtn.addEventListener('click', ...)`**: 
+    - 拡大ボタンの `click` イベントを監視する。
+    - `currentScale`を増加させ、`render()`を呼び出す。
+- **`zoomOutBtn.addEventListener('click', ...)`**: 
+    - 縮小ボタンの `click` イベントを監視する。
+    - `currentScale`を減少させ、`render()`を呼び出す。
+- **`zoomResetBtn.addEventListener('click', ...)`**: 
+    - リセットボタンの `click` イベントを監視する。
+    - `currentScale`を初期値にリセットし、`render()`を呼び出す。
+- **`downloadPdfBtn.addEventListener('click', ...)`**: 
+    - ダウンロードボタンの `click` イベントを監視する。
+    - `downloadPdf()`を呼び出す。
 
 ### 3.5. レンダリング関数
 
@@ -98,7 +118,7 @@
 - **`renderCanvasPage(pageNum)`**: 
     - 指定された`pageNum`のPDFページをCanvasに描画し、テキストレイヤーを追加する共通関数。
     - `pdfDoc.getPage(pageNum)`でページオブジェクトを取得。
-    - `page.getViewport()`でビューポート情報を取得（スケール1.5）。
+    - `page.getViewport()`でビューポート情報を取得（スケールは`currentScale`を使用）。
     - 新しい`<canvas>`要素とテキストレイヤー用の`<div>`要素を作成し、`pageContainer`に追加。
     - `page.render()`でCanvasに描画する。
     - `page.getTextContent()`でテキストコンテンツを取得し、`pdfjsLib.TextLayer`を使用してテキストレイヤーをレンダリングする。
@@ -127,6 +147,23 @@
 - **`showCopyMessage(message)`**: 
     - 画面右下隅に、指定されたメッセージを含む一時的な通知 (`.copy-message`) を表示する。
     - フェードイン・フェードアウトのアニメーションを伴う。
+
+### 3.7. 拡大・縮小機能関連関数
+
+- **`updateScale(delta)`**: 
+    - `currentScale`を`delta`分だけ増減させる。
+    - `currentScale`が最小値（0.5）と最大値（3.0）の範囲に収まるように調整する。
+    - `render()`を呼び出してPDFを再描画する。
+- **`resetScale()`**: 
+    - `currentScale`を初期値（1.5）にリセットする。
+    - `render()`を呼び出してPDFを再描画する。
+
+### 3.8. PDFダウンロード機能関連関数
+
+- **`downloadPdf()`**: 
+    - 読み込まれているPDFファイル (`pdfDoc`) をダウンロードする。
+    - `pdfDoc.getData()`でPDFのバイナリデータを取得し、`Blob`オブジェクトを作成する。
+    - `URL.createObjectURL()`でダウンロードURLを生成し、`<a>`要素を作成してクリックイベントをシミュレートすることでダウンロードを実行する。
 
 ## 4. CSS設計 (`style.css`)
 
@@ -164,3 +201,8 @@
     - `position: fixed; bottom: 20px; right: 20px;` で画面右下固定表示。
     - `background: #333; color: white; padding: 10px 15px; border-radius: 4px; z-index: 1001;` で背景、文字色、パディング、角丸、重なり順を設定。
     - `opacity: 0; transition: opacity 0.3s;` で初期状態の透明度とアニメーションを設定。
+- **拡大・縮小ボタン (`.zoom-controls button`):**
+    - パディング、ボーダー、背景色、カーソルなどを設定。
+- **ダウンロードボタン (`#download-pdf`):**
+    - パディング、ボーダー、背景色、カーソルなどを設定。
+    - `hidden`クラスが付与されている場合は`display: none`で非表示にする。

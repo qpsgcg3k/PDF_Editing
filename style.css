@@ -20,6 +20,20 @@ body {
     gap: 5px;
 }
 
+.zoom-controls button,
+#download-pdf {
+    padding: 8px 16px;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+    background-color: #fff;
+    cursor: pointer;
+}
+
+.zoom-controls button:hover,
+#download-pdf:hover {
+    background-color: #e0e0e0;
+}
+
 #viewer-container {
     width: 80%;
     max-width: 900px;
@@ -144,4 +158,28 @@ input[type="file"] {
 
 .context-menu-item.disabled:hover {
     background-color: white;
+}
+
+/* コピー成功メッセージ */
+.copy-message {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    background: #333;
+    color: white;
+    padding: 10px 15px;
+    border-radius: 4px;
+    z-index: 1001;
+    font-size: 14px;
+    opacity: 0;
+    transition: opacity 0.3s;
+}
+
+/* スクロールモード時のページ間余白 */
+body:not(.page-view-mode) .page-container {
+    margin-bottom: 20px;
+}
+
+#download-pdf.hidden {
+    display: none;
 }
