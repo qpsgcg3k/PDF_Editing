@@ -1,7 +1,34 @@
-import * as pdfjsLib from 'https://cdn.jsdelivr.net/npm/pdfjs-dist@4.4.168/build/pdf.min.mjs';
+// 最新版のPDF.jsを使用（推奨）
+import * as pdfjsLib from 'https://cdn.jsdelivr.net/npm/pdfjs-dist@latest/build/pdf.min.mjs';
 
-// PDF.jsの補助プログラム（Worker）の場所を指定
-pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdn.jsdelivr.net/npm/pdfjs-dist@4.4.168/build/pdf.worker.min.mjs';
+// Worker設定
+pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdn.jsdelivr.net/npm/pdfjs-dist@latest/build/pdf.worker.min.mjs';
+
+// フォールバック付きの安全な読み込み関数
+async function loadPDFJS() {
+    const cdnOptions = [
+        {
+            lib: 'https://cdn.jsdelivr.net/npm/pdfjs-dist@latest/build/pdf.min.mjs',
+            worker: 'https://cdn.jsdelivr.net/npm/pdfjs-dist@latest/build/pdf.worker.min.mjs'
+        },
+        {
+            lib: 'https://unpkg.com/pdfjs-dist@latest/build/pdf.min.mjs',
+            worker: 'https://unpkg.com/pdfjs-dist@latest/build/pdf.worker.min.mjs'
+        }
+    ];
+
+    for (const option of cdnOptions) {
+        try {
+            const pdfjs = await import(option.lib);
+            pdfjs.GlobalWorkerOptions.workerSrc = option.worker;
+            return pdfjs;
+        } catch (error) {
+            console.warn(`Failed to load PDF.js from ${option.lib}:`, error);
+        }
+    }
+    
+    throw new Error('Failed to load PDF.js from all CDN sources');
+}
 
 // DOM要素の取得
 const pdfUpload = document.getElementById('pdf-upload');
@@ -11,17 +38,12 @@ const paginationControls = document.getElementById('pagination-controls');
 const prevPageBtn = document.getElementById('prev-page');
 const nextPageBtn = document.getElementById('next-page');
 const pageNumSpan = document.getElementById('page-num');
-const zoomInBtn = document.getElementById('zoom-in');
-const zoomOutBtn = document.getElementById('zoom-out');
-const zoomResetBtn = document.getElementById('zoom-reset');
-const downloadPdfBtn = document.getElementById('download-pdf');
 
 // アプリケーションの状態管理
 let pdfDoc = null;
 let currentPage = 1;
 let viewMode = 'scroll'; // 'scroll' or 'page'
 let contextMenu = null;
-let currentScale = 1.5; // 初期表示倍率
 
 // --- イベントリスナー ---
 
@@ -39,13 +61,12 @@ pdfUpload.addEventListener('change', async (event) => {
             const typedarray = new Uint8Array(this.result);
             const loadingTask = pdfjsLib.getDocument({
                 data: typedarray,
-                cMapUrl: 'https://cdn.jsdelivr.net/npm/pdfjs-dist@4.4.168/cmaps/',
+                cMapUrl: 'https://cdn.jsdelivr.net/npm/pdfjs-dist@latest/cmaps/',
                 cMapPacked: true,
             });
             pdfDoc = await loadingTask.promise;
             currentPage = 1;
             render();
-            downloadPdfBtn.classList.remove('hidden'); // PDF読み込み後にダウンロードボタンを表示
         } catch (error) {
             console.error('Error loading PDF:', error);
             alert('PDFの読み込み中にエラーが発生しました。');
@@ -99,23 +120,12 @@ document.addEventListener('keydown', (event) => {
     }
 });
 
-// 拡大・縮小ボタンのイベントリスナー
-zoomInBtn.addEventListener('click', () => updateScale(0.2));
-zoomOutBtn.addEventListener('click', () => updateScale(-0.2));
-zoomResetBtn.addEventListener('click', () => resetScale());
-
-// PDFダウンロードボタンのイベントリスナー
-downloadPdfBtn.addEventListener('click', () => downloadPdf());
-
 // --- レンダリング関数 ---
 
-/**
- * 現在の表示モードに応じて適切なレンダリング関数を呼び出す
- */
 function render() {
     if (!pdfDoc) return;
 
-    viewerContainer.innerHTML = ''; // 表示をクリア
+    viewerContainer.innerHTML = '';
 
     if (viewMode === 'scroll') {
         document.body.classList.remove('page-view-mode');
@@ -126,9 +136,6 @@ function render() {
     }
 }
 
-/**
- * スクロール表示モード：全ページを一度に描画する
- */
 async function renderScrollMode() {
     paginationControls.classList.add('hidden');
     for (let i = 1; i <= pdfDoc.numPages; i++) {
@@ -136,26 +143,18 @@ async function renderScrollMode() {
     }
 }
 
-/**
- * ページ送り表示モード：現在の1ページだけを描画する
- */
 async function renderPageMode() {
-    viewerContainer.innerHTML = ''; // 念のためクリア
+    viewerContainer.innerHTML = '';
     paginationControls.classList.remove('hidden');
     await renderCanvasPage(currentPage);
     updatePaginationControls();
 }
 
-/**
- * 指定されたページ番号のPDFをCanvasに描画し、テキストレイヤーを追加する
- * @param {number} pageNum - 描画するページ番号
- */
 async function renderCanvasPage(pageNum) {
     try {
         const page = await pdfDoc.getPage(pageNum);
-        const viewport = page.getViewport({ scale: currentScale }); // currentScaleを使用
+        const viewport = page.getViewport({ scale: 1.5 });
 
-        // ページコンテナを作成
         const pageContainer = document.createElement('div');
         pageContainer.className = 'page-container';
         pageContainer.style.position = 'relative';
@@ -166,7 +165,6 @@ async function renderCanvasPage(pageNum) {
             pageContainer.style.marginBottom = '20px';
         }
 
-        // Canvas要素を作成
         const canvas = document.createElement('canvas');
         const ctx = canvas.getContext('2d');
         canvas.height = viewport.height;
@@ -174,7 +172,6 @@ async function renderCanvasPage(pageNum) {
         canvas.style.display = 'block';
         canvas.style.border = '1px solid #ccc';
 
-        // テキストレイヤー用のdivを作成
         const textLayerDiv = document.createElement('div');
         textLayerDiv.className = 'text-layer';
         textLayerDiv.style.position = 'absolute';
@@ -186,21 +183,18 @@ async function renderCanvasPage(pageNum) {
         textLayerDiv.style.opacity = '0.2';
         textLayerDiv.style.lineHeight = '1.0';
 
-        // ページコンテナに追加
         pageContainer.appendChild(canvas);
         pageContainer.appendChild(textLayerDiv);
         viewerContainer.appendChild(pageContainer);
 
-        // PDFページを描画
         await page.render({
             canvasContext: ctx,
             viewport: viewport,
         }).promise;
 
-        // テキストレイヤーを描画
         const textContent = await page.getTextContent();
         
-        // テキストレイヤーをレンダリング
+        // 最新版のTextLayer APIに対応
         const textLayer = new pdfjsLib.TextLayer({
             textContentSource: textContent,
             container: textLayerDiv,
@@ -218,9 +212,6 @@ async function renderCanvasPage(pageNum) {
     }
 }
 
-/**
- * ページ送りUIの状態を更新する
- */
 function updatePaginationControls() {
     pageNumSpan.textContent = `${currentPage} / ${pdfDoc.numPages}`;
     prevPageBtn.disabled = currentPage <= 1;
@@ -229,11 +220,8 @@ function updatePaginationControls() {
 
 // --- コピー機能関連 ---
 
-/**
- * 右クリックメニューを表示する
- */
 function showContextMenu(x, y) {
-    hideContextMenu(); // 既存のメニューを隠す
+    hideContextMenu();
 
     contextMenu = document.createElement('div');
     contextMenu.className = 'context-menu';
@@ -242,7 +230,6 @@ function showContextMenu(x, y) {
 
     const selectedText = window.getSelection().toString();
     
-    // コピーメニューアイテム
     const copyItem = document.createElement('div');
     copyItem.className = 'context-menu-item';
     copyItem.textContent = 'コピー';
@@ -255,7 +242,6 @@ function showContextMenu(x, y) {
         copyItem.className += ' disabled';
     }
 
-    // 全選択メニューアイテム
     const selectAllItem = document.createElement('div');
     selectAllItem.className = 'context-menu-item';
     selectAllItem.textContent = '全選択';
@@ -269,9 +255,6 @@ function showContextMenu(x, y) {
     document.body.appendChild(contextMenu);
 }
 
-/**
- * 右クリックメニューを隠す
- */
 function hideContextMenu() {
     if (contextMenu) {
         contextMenu.remove();
@@ -279,30 +262,20 @@ function hideContextMenu() {
     }
 }
 
-/**
- * 選択されたテキストをクリップボードにコピーする
- */
 async function copySelectedText() {
     const selectedText = window.getSelection().toString();
     if (selectedText) {
         try {
             await navigator.clipboard.writeText(selectedText);
             console.log('テキストがクリップボードにコピーされました');
-            
-            // 成功メッセージを表示（オプション）
             showCopyMessage('テキストがコピーされました');
         } catch (error) {
             console.error('クリップボードへのコピーに失敗しました:', error);
-            
-            // フォールバック: 従来の方法でコピーを試行
             fallbackCopyText(selectedText);
         }
     }
 }
 
-/**
- * テキスト全体を選択する
- */
 function selectAllText() {
     const textLayers = document.querySelectorAll('.text-layer');
     if (textLayers.length > 0) {
@@ -317,9 +290,6 @@ function selectAllText() {
     }
 }
 
-/**
- * フォールバック: 従来の方法でテキストをコピーする
- */
 function fallbackCopyText(text) {
     const textArea = document.createElement('textarea');
     textArea.value = text;
@@ -338,9 +308,6 @@ function fallbackCopyText(text) {
     document.body.removeChild(textArea);
 }
 
-/**
- * コピー結果のメッセージを表示する
- */
 function showCopyMessage(message) {
     const messageDiv = document.createElement('div');
     messageDiv.textContent = message;
@@ -360,12 +327,10 @@ function showCopyMessage(message) {
     
     document.body.appendChild(messageDiv);
     
-    // フェードイン
     setTimeout(() => {
         messageDiv.style.opacity = '1';
     }, 100);
     
-    // 3秒後にフェードアウト
     setTimeout(() => {
         messageDiv.style.opacity = '0';
         setTimeout(() => {
@@ -374,56 +339,4 @@ function showCopyMessage(message) {
             }
         }, 300);
     }, 3000);
-}
-
-// --- 拡大・縮小機能関連 ---
-
-/**
- * PDFの表示倍率を更新する
- * @param {number} delta - 倍率の増減値
- */
-function updateScale(delta) {
-    if (!pdfDoc) return;
-    currentScale = Math.max(0.5, Math.min(currentScale + delta, 3.0)); // 最小0.5, 最大3.0
-    render();
-}
-
-/**
- * PDFの表示倍率をリセットする
- */
-function resetScale() {
-    if (!pdfDoc) return;
-    currentScale = 1.5; // 初期倍率にリセット
-    render();
-}
-
-// --- PDFダウンロード機能関連 ---
-
-/**
- * 現在表示されているPDFをダウンロードする
- */
-async function downloadPdf() {
-    if (!pdfDoc) {
-        alert('ダウンロードするPDFがありません。');
-        return;
-    }
-
-    try {
-        const pdfData = await pdfDoc.getData();
-        const blob = new Blob([pdfData], { type: 'application/pdf' });
-        const url = URL.createObjectURL(blob);
-
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = 'downloaded_pdf.pdf'; // ダウンロードファイル名
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        URL.revokeObjectURL(url);
-
-        console.log('PDFがダウンロードされました。');
-    } catch (error) {
-        console.error('PDFダウンロード中にエラーが発生しました:', error);
-        alert('PDFのダウンロード中にエラーが発生しました。');
-    }
 }
