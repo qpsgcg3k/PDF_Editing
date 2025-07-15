@@ -109,8 +109,11 @@ document.addEventListener('contextmenu', (event) => {
     }
 });
 
-document.addEventListener('click', () => {
-    hideContextMenu();
+document.addEventListener('mousedown', (event) => {
+    // メニュー要素の外側がクリックされた場合のみメニューを隠す
+    if (contextMenu && !contextMenu.contains(event.target)) {
+        hideContextMenu();
+    }
 });
 
 // キーボードショートカット
@@ -266,6 +269,10 @@ function showContextMenu(x, y) {
     contextMenu.className = 'context-menu';
     contextMenu.style.left = `${x}px`;
     contextMenu.style.top = `${y}px`;
+    contextMenu.addEventListener('mousedown', (e) => {
+        e.stopPropagation();
+        e.preventDefault(); // フォーカス移動を防ぎ、テキスト選択を維持する
+    });
 
     const selectedText = window.getSelection().toString();
     
@@ -273,12 +280,15 @@ function showContextMenu(x, y) {
     const copyItem = document.createElement('div');
     copyItem.className = 'context-menu-item';
     copyItem.textContent = 'コピー';
-    if (selectedText) {
-        copyItem.addEventListener('click', () => {
+    
+    copyItem.addEventListener('mousedown', () => { // 'click'から'mousedown'に変更
+        if (!copyItem.classList.contains('disabled')) {
             copySelectedText();
             hideContextMenu();
-        });
-    } else {
+        }
+    });
+
+    if (!selectedText) {
         copyItem.className += ' disabled';
     }
 
@@ -286,7 +296,7 @@ function showContextMenu(x, y) {
     const selectAllItem = document.createElement('div');
     selectAllItem.className = 'context-menu-item';
     selectAllItem.textContent = '全選択';
-    selectAllItem.addEventListener('click', () => {
+    selectAllItem.addEventListener('mousedown', () => { // 'click'から'mousedown'に変更
         selectAllText();
         hideContextMenu();
     });
