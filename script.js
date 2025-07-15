@@ -270,8 +270,11 @@ function showContextMenu(x, y) {
     contextMenu.style.left = `${x}px`;
     contextMenu.style.top = `${y}px`;
     contextMenu.addEventListener('mousedown', (e) => {
-        e.stopPropagation();
-        e.preventDefault(); // フォーカス移動を防ぎ、テキスト選択を維持する
+        // クリックされた要素がメニュー項目でない場合のみ
+        if (!e.target.closest('.menu-item')) {
+            e.stopPropagation();
+            e.preventDefault();
+        }
     });
 
     const selectedText = window.getSelection().toString();
