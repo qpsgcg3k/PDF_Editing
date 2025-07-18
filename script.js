@@ -105,7 +105,7 @@ nextPageBtn.addEventListener('click', () => {
 document.addEventListener('contextmenu', (event) => {
     if (event.target.closest('.text-layer')) {
         event.preventDefault();
-        showContextMenu(event.clientX, event.clientY);
+        showContextMenu(event.pageX, event.pageY);
     }
 });
 
