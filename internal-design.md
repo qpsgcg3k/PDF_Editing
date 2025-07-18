@@ -30,7 +30,7 @@
     - `currentPage`: 現在表示中のページ番号。
     - `viewMode`: 現在の表示モード（`'scroll'`または`'page'`）。
     - `currentScale`: 現在の表示倍率。
-    - `contextMenu`: 右クリックメニューのDOM要素。
+    - `contextMenu`: 右クリックメニューのDOM要素。表示位置は、右クリックイベントの座標（`clientX`, `clientY`）を基に計算され、ビューポート内に収まるように調整される。
 
 #### 2.3.3. イベントリスナー
 - `pdfUpload`: `change`イベントをリッスンし、ファイル選択時にPDFの読み込みと初期レンダリングを行う。
@@ -50,7 +50,8 @@
 - `updatePaginationControls()`: ページネーションUI（ページ番号、ボタンの有効/無効状態）を更新する。
 
 #### 2.3.5. コピー機能関連
-- `showContextMenu(x, y)`: 指定された座標にカスタム右クリックメニューを作成・表示する。
+- `showContextMenu(x, y)`: 指定された座標にカスタム右クリックメニューを作成・表示する。表示位置は、右クリックイベントの座標（`clientX`, `clientY`）を基に計算され、ビューポート内に収まるように調整される。
+- テキスト選択時の背景色には、`style.css`で定義された`rgba(0, 255, 0, 0.4)`（緑色）が適用される。
 - `hideContextMenu()`: カスタム右クリックメニューを非表示にする。
 - `copySelectedText()`: `window.getSelection()`で選択されたテキストを`navigator.clipboard.writeText()`でクリップボードにコピーする。失敗時はフォールバックとして`document.execCommand('copy')`を試みる。
 - `selectAllText()`: `.text-layer`内の全テキストを選択する。
