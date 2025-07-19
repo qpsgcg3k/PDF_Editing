@@ -42,6 +42,7 @@ const zoomInBtn = document.getElementById('zoom-in');
 const zoomOutBtn = document.getElementById('zoom-out');
 const zoomResetBtn = document.getElementById('zoom-reset');
 const downloadPdfBtn = document.getElementById('download-pdf');
+const loadingIndicator = document.getElementById('loading-indicator');
 
 // アプリケーションの状態管理
 let pdfDoc = null;
@@ -62,6 +63,7 @@ pdfUpload.addEventListener('change', async (event) => {
 
     const fileReader = new FileReader();
     fileReader.onload = async function() {
+        loadingIndicator.style.display = 'block';
         try {
             const typedarray = new Uint8Array(this.result);
             const loadingTask = pdfjsLib.getDocument({
@@ -76,6 +78,8 @@ pdfUpload.addEventListener('change', async (event) => {
         } catch (error) {
             console.error('Error loading PDF:', error);
             alert('PDFの読み込み中にエラーが発生しました。');
+        } finally {
+            loadingIndicator.style.display = 'none';
         }
     };
     fileReader.readAsArrayBuffer(file);
