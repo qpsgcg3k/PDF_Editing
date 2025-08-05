@@ -42,3 +42,6 @@ coverage/
 
 # My custom files (e.g., temporary files created by the agent)
 commit_message.txt
+
+# Gemini CLI related files
+.serena/
